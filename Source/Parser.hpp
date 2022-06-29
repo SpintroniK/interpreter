@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Ast.hpp"
+
 #include <cctype>
 #include <concepts>
 #include <functional>
@@ -336,22 +338,6 @@ token(Parser auto parser)
     );
 }
 
-Parser auto natural = chain
-(
-    some(digit),
-    [](const std::string& digits) { return unit(std::stoi(digits)); }
-);
-
-Parser auto integer = either
-(
-    natural,
-    chain
-    (
-        symbol('-'),
-        [](auto) { return natural; },
-        [](int nat) { return unit(-nat); }
-    )
-);
 
 template <typename T>
 auto appended_vector(std::vector<T> x, T const& y) -> std::vector<T>
@@ -372,8 +358,40 @@ Parser auto repeat(P parser)
     );
 }
 
-using Value_t = int;
+struct Plus{};
+struct Minus{};
+struct Mult{};
+struct Div{};
+
+using Data_t = int;
+using Value_t = Tree<Data_t, Plus, Minus, Mult, Div>;
 using Parsed = Parsed_t<Value_t>;
+
+using Node = Value_t;
+
+template <typename T>
+Node MakeNode(const T& n, const std::vector<Node>& c = {})
+{
+    return Node{ std::make_pair(n, c) };
+}
+
+Parser auto natural = chain
+(
+    some(digit),
+    [](const std::string& digits) { return unit(MakeNode(std::stoi(digits))); }
+);
+
+Parser auto integer = either
+(
+    natural,
+    chain
+    (
+        symbol('-'),
+        [](auto) { return natural; },
+        [](const auto& nat) { return unit(MakeNode(-std::get<Data_t>(nat.first))); }
+    )
+);
+
 
 auto expr(std::string_view input) -> Parsed;
 auto term(std::string_view input) -> Parsed;

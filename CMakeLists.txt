@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.16)
 project(Interpreter)
 
 include_directories("${PROJECT_SOURCE_DIR}/Source")
-set(CMAKE_BUILD_TYPE Release)
+# set(CMAKE_BUILD_TYPE Release)
 
 add_executable(interpreter Source/main.cpp Source/Parser.cpp)
 

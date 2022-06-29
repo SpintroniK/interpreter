@@ -1,19 +1,33 @@
 #include "Parser.hpp"
 
+#include <functional>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <string_view>
 #include <vector>
+
+using F_t = std::function<Data_t(Data_t, Data_t)>;
+
+template <typename... T, typename TInit, typename FTransform>
+TInit reduce_tree(const Tree<T...>& t, TInit init, FTransform t_op)
+{
+    if(t.second.empty()) // is leaf ?
+    {
+        return std::get<Data_t>(t.first);
+    }
+
+    return std::invoke(std::visit(t_op, t.first), reduce_tree(t.second.front(), init, t_op), reduce_tree(t.second.back(), init, t_op));
+}
 
 int main(int argc, char** argv)
 {
 
     const auto args = std::vector(argv, argv + argc);
 
-
     for(;;)
     {
-        std::cout << "> ";
+        std::cout << "🖉  ";
 
         std::string line;
         std::getline(std::cin, line);
@@ -24,11 +38,22 @@ int main(int argc, char** argv)
             return EXIT_SUCCESS;
         }
 
-        auto result = expr(input);
+        const auto result = expr(input);
 
         if(result)
         {
-            std::cout << result->first << std::endl;
+            // <int, Plus, Minus, Mult, Div>
+            const auto r = reduce_tree(result->first, Data_t{},
+                            overloaded                               // Transform "overloaded" function
+                            {
+                                [] (Data_t v) -> F_t { return [=](Data_t, Data_t){ return v; }; },
+                                [] (Plus) -> F_t { return std::plus<int>{}; },
+                                [] (Minus) -> F_t { return std::minus<int>{}; },
+                                [] (Mult) -> F_t { return std::multiplies<int>{}; },
+                                [] (Div) -> F_t { return std::divides<int>{}; },
+                            });
+
+            std::cout << r << std::endl;
         }
         else
         {
