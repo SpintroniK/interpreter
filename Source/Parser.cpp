@@ -1,204 +1,180 @@
 #include "Parser.hpp"
 
+#include <functional>
 #include <iostream>
+#include <numeric>
 
+// expression     → equality ;
 
-
-// expr = term ("+" | "-") expr | term.
-auto expr(std::string_view input) -> Parsed
+auto expression(std::string_view input) -> Parsed
 {
-    return either
+    return equality(input);
+}
+
+// equality       → comparison { ( "!=" | "==" ) comparison } ;
+
+auto equality(std::string_view input) -> Parsed
+{
+    return sequence
     (
-        sequence
+        [](auto c, auto) -> Value_t { return c; },
+        comparison,
+        repeat
         (
-            [](auto x, auto c, auto y) -> Value_t 
-            { 
-                return c == '+' ?  MakeNode(Plus{}, {x, y}) : MakeNode(Minus{}, {x, y}); 
-            },
-            term,
-            either
+            sequence
             (
-                symbol('+'),
-                symbol('-')
-            ),
-            expr
-        ),
-        term
+                [](auto s, auto c) { return std::pair{s, c}; },
+                either
+                (
+                    str("!="),
+                    str("==")
+                ),
+                comparison
+            )
+        )
     )(input);
 }
 
-// term = factor ("*" | "/") term | factor.
+// comparison     → term { ( ">" | ">=" | "<" | "<=" ) term } ;
+
+auto comparison(std::string_view input) -> Parsed
+{
+    return sequence
+    (
+        [] (auto t, auto vst) -> Value_t
+        {
+            auto d = t;
+            for(const auto& st : vst)
+            {
+                if(st.first == ">") d = d > st.second;
+                if(st.first == ">=") d = d >= st.second;
+                if(st.first == "<") d = d < st.second;
+                if(st.first == "<=") d = d <= st.second;
+            }
+
+            return d;
+        },
+        term,
+        repeat
+        (
+            sequence
+            (
+                [] (auto s, auto t) { return std::pair{s, t}; },
+                either
+                (
+                    str(">"),
+                    str(">="),
+                    str("<"),
+                    str("<=")
+                ),
+                term
+            )
+        )
+    )(input);
+}
+
+// term           → factor { ( "-" | "+" ) factor } ;
+
 auto term(std::string_view input) -> Parsed
 {
+    return sequence
+    (
+        [] (auto f, auto vsu) 
+        {
+            return std::accumulate(vsu.begin(), vsu.end(), f, [] (const auto& acc, const auto& v)
+            {
+                return v.first == '-' ? acc - v.second : acc + v.second;
+            });
+        },
+        factor,
+        repeat
+        (
+            sequence
+            (
+                [] (auto s, auto u) { return std::pair{s, u}; },
+                either
+                (
+                    symbol('-'),
+                    symbol('+')
+                ),
+                factor
+            )
+        )
+    )(input);
+}
+
+// factor         → unary { ( "/" | "*" ) unary } ;
+
+auto factor(std::string_view input) -> Parsed
+{
+    return sequence
+    (
+        [] (auto u, auto vsu) 
+        { 
+            return std::accumulate(vsu.begin(), vsu.end(), u, [] (const auto& acc, const auto& v)
+            {
+                return v.first == '/' ? acc / v.second : acc * v.second;
+            });
+        },
+        unary,
+        repeat
+        (
+            sequence
+            (
+                [] (auto s, auto u) { return std::pair{s, u}; },
+                either
+                (
+                    symbol('/'),
+                    symbol('*')
+                ),
+                unary
+            )
+        )
+    )(input);
+}
+
+// unary          → ( "!" | "-" ) unary | primary ;
+
+auto unary(std::string_view input) -> Parsed
+{
     return either
     (
         sequence
         (
-            [](auto x, auto c, auto y) -> Value_t { return c == '*' ? MakeNode(Mult{}, {x, y}) : MakeNode(Div{}, {x, y}); },
-            factor,
+            [] (auto s, auto u)
+            { 
+                return s == '!' ? !u : -u; 
+            },
             either
             (
-                symbol('*'),
-                symbol('/')
+                symbol('!'),
+                symbol('-')
             ),
-            term
+            unary
         ),
-        factor
+        primary
     )(input);
 }
 
-// factor = "(" expr ")" | integer.
-auto factor(std::string_view input) -> Parsed
+// primary        → integer | "true" | "false" | "nil" | "(" expression ")" ;
+
+auto primary(std::string_view input) -> Parsed
 {
     return token
     (
         either
         (
+            integer,
+            // str("true"),
+            // str("false"),
+            // str("nil"),
             sequence
             (
-                [](auto, auto x, auto) -> Value_t { return x; },
-                symbol('('),
-                expr,
-                symbol(')')
-            ),
-            integer
+                [] (auto, auto e, auto) { return e;},
+                str("("),
+                expression,
+                str(")")
+            )
         )
     )(input);
 }
-
-
-// // expression = equality.
-// auto expression(std::string_view input)-> Parsed
-// {
-//     return equality(input);
-// }
-
-// // equality = comparison {("!=" | "==") comparison}.
-// auto equality(std::string_view input) -> Parsed
-// {
-//     return sequence
-//     (
-//         [](auto, auto) -> ValueType { return {}; },
-//         comparison,
-//         repeat
-//         (
-//             sequence
-//             (
-//                 [](auto, auto) -> ValueType { return {}; },            
-//                 either
-//                 (
-//                     str("!="),
-//                     str("==")
-//                 ),
-//                 comparison
-//             )
-//         )
-//     )(input);
-// }
-
-// // comparison = term {( ">" | ">=" | "<" | "<=" ) term}.
-// auto comparison(std::string_view input) -> Parsed
-// {
-//     return sequence
-//     (
-//         [](auto, auto) -> ValueType { return {}; },
-//         term,
-//         repeat
-//         (
-//             sequence
-//             (
-//                 [](auto, auto) -> ValueType { return {}; },
-//                 (
-//                     either
-//                     (
-//                         str(">"),
-//                         str(">="),
-//                         str("<"),
-//                         str("<=")
-//                     )
-//                 ),
-//                 term
-//             )
-//         )
-//     )(input);
-// }
-
-// auto term(std::string_view input) -> Parsed
-// {
-//     return sequence
-//     (
-//         [](auto, auto) -> ValueType { return {}; },
-//         factor,
-//         repeat
-//         (
-//             sequence
-//             (
-//                 [](auto, auto) -> ValueType { return {}; },
-//                 either
-//                 (
-//                     symbol('-'),
-//                     symbol('+')
-//                 ),
-//                 factor
-//             )
-//         )
-//     )(input);
-// }
-
-// auto factor(std::string_view input) -> Parsed
-// {
-//     return sequence
-//     (
-//         [](auto, auto) -> ValueType { return {}; },
-//         unary,
-//         repeat
-//         (
-//             sequence
-//             (
-//                 [](auto, auto) -> ValueType { return {}; },
-                
-//                 either
-//                 (
-//                     symbol('/'),
-//                     symbol('*')
-//                 ),
-//                 unary
-//             )
-//         )
-//     )(input);
-// }
-
-// auto unary(std::string_view input) -> Parsed
-// {
-//     return either
-//     (
-//         sequence
-//         (
-//             [](auto, auto) -> ValueType { return {}; },
-//             either
-//             (
-//                 symbol('!'),
-//                 symbol('-')
-//             ),
-//             unary
-//         ),
-//         primary
-//     )(input);
-// }
-
-// auto primary(std::string_view input) -> Parsed
-// {
-//     return either
-//     (
-//         str("true"),
-//         str("false"),
-//         str("nil"),
-//         sequence
-//         (
-//             [](auto, auto, auto) -> std::string { return {}; },
-//             symbol('('),
-//             expression,
-//             symbol(')')
-//         )
-//     )(input);
-// }

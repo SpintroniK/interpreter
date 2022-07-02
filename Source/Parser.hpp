@@ -364,7 +364,7 @@ struct Mult{};
 struct Div{};
 
 using Data_t = int;
-using Value_t = Tree<Data_t, Plus, Minus, Mult, Div>;
+using Value_t = Data_t; //Tree<Data_t, Plus, Minus, Mult, Div>;
 using Parsed = Parsed_t<Value_t>;
 
 using Node = Value_t;
@@ -378,7 +378,7 @@ Node MakeNode(const T& n, const std::vector<Node>& c = {})
 Parser auto natural = chain
 (
     some(digit),
-    [](const std::string& digits) { return unit(MakeNode(std::stoi(digits))); }
+    [](const std::string& digits) { return unit(std::stoi(digits)); }
 );
 
 Parser auto integer = either
@@ -388,19 +388,14 @@ Parser auto integer = either
     (
         symbol('-'),
         [](auto) { return natural; },
-        [](const auto& nat) { return unit(MakeNode(-std::get<Data_t>(nat.first))); }
+        [](const auto& nat) { return unit(-nat); }
     )
 );
 
-
-auto expr(std::string_view input) -> Parsed;
-auto term(std::string_view input) -> Parsed;
-auto factor(std::string_view input) -> Parsed;
-
-// auto expression(std::string_view) -> Parsed;
-// auto equality(std::string_view) -> Parsed;
-// auto comparison(std::string_view) -> Parsed;
-// auto term(std::string_view) -> Parsed;
-// auto factor(std::string_view) -> Parsed;
-// auto unary(std::string_view) -> Parsed;
-// auto primary(std::string_view) -> Parsed;
+auto expression(std::string_view) -> Parsed;
+auto equality(std::string_view) -> Parsed;
+auto comparison(std::string_view) -> Parsed;
+auto term(std::string_view) -> Parsed;
+auto factor(std::string_view) -> Parsed;
+auto unary(std::string_view) -> Parsed;
+auto primary(std::string_view) -> Parsed;
