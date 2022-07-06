@@ -60,6 +60,8 @@
         "forward_list": "cpp",
         "unordered_set": "cpp",
         "stop_token": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "iostream": "cpp",
+        "istream": "cpp"
     }
 }

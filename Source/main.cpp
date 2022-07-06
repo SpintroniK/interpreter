@@ -1,24 +1,28 @@
 #include "Parser.hpp"
 
-#include <functional>
+
 #include <iostream>
 #include <numeric>
 #include <string>
 #include <string_view>
 #include <vector>
 
-using F_t = std::function<Data_t(Data_t, Data_t)>;
+using Result_t = std::variant<Data_t, std::string>;
 
-template <typename... T, typename TInit, typename FTransform>
-TInit reduce_tree(const Tree<T...>& t, TInit init, FTransform t_op)
+auto eval(const Value_t& ast) -> Result_t
 {
-    if(t.second.empty()) // is leaf?
-    {
-        return std::get<Data_t>(t.first);
-    }
-
-    // isn't a leaf
-    return std::invoke(std::visit(t_op, t.first), reduce_tree(t.second.front(), init, t_op), reduce_tree(t.second.back(), init, t_op));
+            // <Data_t, std::string, Add, Sub, Mul, Div, Neg>
+    return std::visit(overloaded
+            {
+                [](Data_t value) -> Result_t { return value; },
+                [](const Neg& n) -> Result_t { return -std::get<Data_t>(eval(*n.expr)); },
+                [](const Mul& m) -> Result_t { return std::get<Data_t>(eval(*m.lhs)) * std::get<Data_t>(eval(*m.rhs));},
+                [](const Div& m) -> Result_t { return std::get<Data_t>(eval(*m.lhs)) / std::get<Data_t>(eval(*m.rhs));},
+                [](const Add& m) -> Result_t { return std::get<Data_t>(eval(*m.lhs)) + std::get<Data_t>(eval(*m.rhs));},
+                [](const Sub& m) -> Result_t { return std::get<Data_t>(eval(*m.lhs)) - std::get<Data_t>(eval(*m.rhs));},
+                [](const std::string& s) -> Result_t { return s; },
+                [](auto) -> Result_t { return Data_t{};}
+            }, ast);
 }
 
 int main(int argc, char** argv)
@@ -39,22 +43,15 @@ int main(int argc, char** argv)
             return EXIT_SUCCESS;
         }
 
-        const auto result = expression(input);
+        const auto parsed = expression(input);
 
-        if(result)
+        if(parsed)
         {
-            // <int, Plus, Minus, Mult, Div>
-            // const auto r = reduce_tree(result->first, Data_t{},
-            //                 overloaded                               // Transform "overloaded" function
-            //                 {
-            //                     [] (Data_t v) -> F_t { return [=](Data_t, Data_t){ return v; }; },
-            //                     [] (Plus) -> F_t { return std::plus<int>{}; },
-            //                     [] (Minus) -> F_t { return std::minus<int>{}; },
-            //                     [] (Mult) -> F_t { return std::multiplies<int>{}; },
-            //                     [] (Div) -> F_t { return std::divides<int>{}; },
-            //                 });
-
-            std::cout << result->first << std::endl;
+            std::visit(overloaded
+            {
+                [](const std::string& s) { std::cout << s << std::endl; },
+                [](const Data_t& val) { std::cout << val << std::endl; },
+            }, eval(parsed->first));
         }
         else
         {

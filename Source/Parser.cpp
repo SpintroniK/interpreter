@@ -3,6 +3,9 @@
 #include <functional>
 #include <iostream>
 #include <numeric>
+#include <string>
+
+using namespace std::string_literals;
 
 // expression     → equality ;
 
@@ -17,7 +20,10 @@ auto equality(std::string_view input) -> Parsed
 {
     return sequence
     (
-        [](auto c, auto) -> Value_t { return c; },
+        [](auto c, auto) 
+        { 
+            return c; 
+        },
         comparison,
         repeat
         (
@@ -26,8 +32,8 @@ auto equality(std::string_view input) -> Parsed
                 [](auto s, auto c) { return std::pair{s, c}; },
                 either
                 (
-                    str("!="),
-                    str("==")
+                    estr("!="),
+                    estr("==")
                 ),
                 comparison
             )
@@ -41,18 +47,23 @@ auto comparison(std::string_view input) -> Parsed
 {
     return sequence
     (
-        [] (auto t, auto vst) -> Value_t
+        [] (auto t, auto)
         {
-            auto d = t;
-            for(const auto& st : vst)
-            {
-                if(st.first == ">") d = d > st.second;
-                if(st.first == ">=") d = d >= st.second;
-                if(st.first == "<") d = d < st.second;
-                if(st.first == "<=") d = d <= st.second;
-            }
+    
+            // const auto res = std::visit(overloaded
+            // {
+            //     [&](int x, int y) -> Variant_t 
+            //     {
+            //         const auto op = vst.front().first;
+            //         return x > y ? "true"s : "false"s; 
+            //     },
+            //     [](auto, auto) -> Variant_t { return "false"s; }
+            // }
+            // , t.first, vst.front().second.first);
 
-            return d;
+            // return MakeNode(res);
+
+            return t;
         },
         term,
         repeat
@@ -62,10 +73,10 @@ auto comparison(std::string_view input) -> Parsed
                 [] (auto s, auto t) { return std::pair{s, t}; },
                 either
                 (
-                    str(">"),
-                    str(">="),
-                    str("<"),
-                    str("<=")
+                    estr(">"),
+                    estr(">="),
+                    estr("<"),
+                    estr("<=")
                 ),
                 term
             )
@@ -79,11 +90,11 @@ auto term(std::string_view input) -> Parsed
 {
     return sequence
     (
-        [] (auto f, auto vsu) 
+        [] (auto f, auto vsf) 
         {
-            return std::accumulate(vsu.begin(), vsu.end(), f, [] (const auto& acc, const auto& v)
+            return std::accumulate(vsf.begin(), vsf.end(), MakeExpr<Add>(f, Data_t{0}), [](const auto& acc, const auto& v)
             {
-                return v.first == '-' ? acc - v.second : acc + v.second;
+                return std::get<std::string>(v.first) == "-" ? MakeExpr<Sub>(acc, v.second) : MakeExpr<Add>(acc, v.second);
             });
         },
         factor,
@@ -91,11 +102,11 @@ auto term(std::string_view input) -> Parsed
         (
             sequence
             (
-                [] (auto s, auto u) { return std::pair{s, u}; },
+                [] (auto s, auto f) { return std::pair{s, f}; },
                 either
                 (
-                    symbol('-'),
-                    symbol('+')
+                    estr("-"),
+                    estr("+")
                 ),
                 factor
             )
@@ -110,10 +121,10 @@ auto factor(std::string_view input) -> Parsed
     return sequence
     (
         [] (auto u, auto vsu) 
-        { 
-            return std::accumulate(vsu.begin(), vsu.end(), u, [] (const auto& acc, const auto& v)
+        {
+            return std::accumulate(vsu.begin(), vsu.end(), MakeExpr<Mul>(u, Data_t{1}), [](const auto& acc, const auto& v)
             {
-                return v.first == '/' ? acc / v.second : acc * v.second;
+                return std::get<std::string>(v.first) == "/" ? MakeExpr<Div>(acc, v.second) : MakeExpr<Mul>(acc, v.second);
             });
         },
         unary,
@@ -124,8 +135,8 @@ auto factor(std::string_view input) -> Parsed
                 [] (auto s, auto u) { return std::pair{s, u}; },
                 either
                 (
-                    symbol('/'),
-                    symbol('*')
+                    estr("/"),
+                    estr("*")
                 ),
                 unary
             )
@@ -141,14 +152,21 @@ auto unary(std::string_view input) -> Parsed
     (
         sequence
         (
-            [] (auto s, auto u)
-            { 
-                return s == '!' ? !u : -u; 
+            [] (auto, auto u)
+            {
+                // if(std::get<std::string>(s) == "!")
+                // {
+                //     return Expr{"false"s};
+                // }
+                // else
+                {
+                    return MakeExpr<Neg>(u);
+                }
             },
             either
             (
-                symbol('!'),
-                symbol('-')
+                estr("!"),
+                estr("-")
             ),
             unary
         ),
@@ -156,7 +174,7 @@ auto unary(std::string_view input) -> Parsed
     )(input);
 }
 
-// primary        → integer | "true" | "false" | "nil" | "(" expression ")" ;
+// primary        → real | integer | "true" | "false" | "nil" | "(" expression ")" ;
 
 auto primary(std::string_view input) -> Parsed
 {
@@ -164,16 +182,52 @@ auto primary(std::string_view input) -> Parsed
     (
         either
         (
-            integer,
-            // str("true"),
-            // str("false"),
-            // str("nil"),
+            real,
+            einteger,
+            estr("true"),
+            estr("false"),
+            estr("nil"),
             sequence
             (
                 [] (auto, auto e, auto) { return e;},
-                str("("),
+                estr("("),
                 expression,
-                str(")")
+                estr(")")
+            )
+        )
+    )(input);
+}
+
+// real = integer "." [integer] | "." integer.
+auto real(std::string_view input) -> Parsed
+{
+    return sequence
+    (
+        [](auto v)
+        {
+            return v;
+        },
+        either
+        (
+            sequence
+            (
+                [](auto i, auto, auto f)
+                {
+
+                    const auto str = std::to_string(static_cast<int>(std::get<Data_t>(i))) 
+                                     + "." 
+                                     + (f? std::to_string(static_cast<int>(std::get<Data_t>(*f))) : "0");
+
+                    return Expr{std::stod(str)}; 
+                },
+                einteger,
+                symbol('.'),
+                maybe(einteger)
+            ),
+            sequence(
+                [](auto, const auto& x){ return Expr{std::stod("." + std::to_string(std::get<Data_t>(x)))}; },
+                symbol('.'),
+                einteger
             )
         )
     )(input);
