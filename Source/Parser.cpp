@@ -11,77 +11,7 @@ using namespace std::string_literals;
 
 auto expression(std::string_view input) -> Parsed
 {
-    return equality(input);
-}
-
-// equality       → comparison { ( "!=" | "==" ) comparison } ;
-
-auto equality(std::string_view input) -> Parsed
-{
-    return sequence
-    (
-        [](auto c, auto) 
-        { 
-            return c; 
-        },
-        comparison,
-        repeat
-        (
-            sequence
-            (
-                [](auto s, auto c) { return std::pair{s, c}; },
-                either
-                (
-                    estr("!="),
-                    estr("==")
-                ),
-                comparison
-            )
-        )
-    )(input);
-}
-
-// comparison     → term { ( ">" | ">=" | "<" | "<=" ) term } ;
-
-auto comparison(std::string_view input) -> Parsed
-{
-    return sequence
-    (
-        [] (auto t, auto)
-        {
-    
-            // const auto res = std::visit(overloaded
-            // {
-            //     [&](int x, int y) -> Variant_t 
-            //     {
-            //         const auto op = vst.front().first;
-            //         return x > y ? "true"s : "false"s; 
-            //     },
-            //     [](auto, auto) -> Variant_t { return "false"s; }
-            // }
-            // , t.first, vst.front().second.first);
-
-            // return MakeNode(res);
-
-            return t;
-        },
-        term,
-        repeat
-        (
-            sequence
-            (
-                [] (auto s, auto t) { return std::pair{s, t}; },
-                either
-                (
-                    estr(">"),
-                    estr(">="),
-                    estr("<"),
-                    estr("<=")
-                ),
-                term
-            )
-        )
-    )(input);
+    return term(input);
 }
 
 // term           → factor { ( "-" | "+" ) factor } ;
@@ -154,20 +84,9 @@ auto unary(std::string_view input) -> Parsed
         (
             [] (auto, auto u)
             {
-                // if(std::get<std::string>(s) == "!")
-                // {
-                //     return Expr{"false"s};
-                // }
-                // else
-                {
                     return MakeExpr<Neg>(u);
-                }
             },
-            either
-            (
-                estr("!"),
-                estr("-")
-            ),
+            estr("-"),
             unary
         ),
         primary

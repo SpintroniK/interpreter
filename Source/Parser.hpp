@@ -488,8 +488,6 @@ estr(std::string_view match)
 }
 
 auto expression(std::string_view) -> Parsed;
-auto equality(std::string_view) -> Parsed;
-auto comparison(std::string_view) -> Parsed;
 auto term(std::string_view) -> Parsed;
 auto factor(std::string_view) -> Parsed;
 auto unary(std::string_view) -> Parsed;
