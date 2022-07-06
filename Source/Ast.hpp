@@ -48,6 +48,6 @@ auto MakeExpr(auto... e)
 }
 
 using Data_t = double;
-using Variant_t = std::variant<Data_t, std::string, Add, Sub, Mul, Div, Neg>;
+using Variant_t = std::variant<Data_t, Add, Sub, Mul, Div, Neg>;
 
 struct Expr : Variant_t {};

@@ -18,7 +18,6 @@ auto eval(const auto& ast) -> Data_t
                 [](const Div& m) { return eval(*m.lhs) / eval(*m.rhs); },
                 [](const Add& m) { return eval(*m.lhs) + eval(*m.rhs); },
                 [](const Sub& m) { return eval(*m.lhs) - eval(*m.rhs); },
-                [](auto) { return Data_t{};}
             }, ast);
 }
 
