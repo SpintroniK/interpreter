@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Ast.hpp"
-
 #include <cctype>
 #include <concepts>
 #include <functional>
@@ -358,73 +356,12 @@ Parser auto repeat(P parser)
     );
 }
 
-struct Expr;
-
-struct Add
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Sub
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Mul
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Div
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Neg
-{
-    std::shared_ptr<Expr> expr;
-};
-
-template <typename E>
-auto MakeExpr(auto... e)
-{
-    return Expr{E{std::make_shared<Expr>(e)...}};
-}
-
-using Data_t = double;
-using Variant_t = std::variant<Data_t, std::string, Add, Sub, Mul, Div, Neg>;
-
-struct Expr : Variant_t {};
-
-using Value_t = Expr;
-using Parsed = Parsed_t<Value_t>;
-
-using Node = Value_t;
-
-// template <typename T>
-// Node MakeNode(const T& n, const std::vector<Node>& c = {})
-// {
-//     return Node{ std::make_pair(n, c) };
-// }
-
 Parser auto natural = chain
 (
     some(digit),
     [](const std::string& digits) { return unit(std::stod(digits)); }
 );
 
-
-// Parser auto vnatural = chain
-// (
-//     some(digit),
-//     [](const std::string& digits) { return unit(MakeNode(std::stoi(digits))); }
-// );
-
-Parser auto enatural = chain
-(
-    some(digit),
-    [](const std::string& digits) { return unit(Expr{std::stod(digits)}); }
-);
 
 Parser auto integer = either
 (
@@ -437,55 +374,11 @@ Parser auto integer = either
     )
 );
 
-// Parser auto vinteger = either
-// (
-//     vnatural,
-//     chain
-//     (
-//         symbol('-'),
-//         [](auto) { return natural; },
-//         [](const auto& nat) { return unit(MakeNode(-nat)); }
-//     )
-// );
 
-Parser auto einteger = either
-(
-    enatural,
-    chain
-    (
-        symbol('-'),
-        [](auto) { return natural; },
-        [](const auto& nat) { return unit(Expr{-nat}); }
-    )
-);
+struct Expr;
 
-// constexpr Parser auto
-// vstr(std::string_view match)
-// {
-//     return [match](std::string_view input) -> Parsed
-//     {
-//         if (input.starts_with(match)) 
-//         {
-//             return {{ MakeNode(std::string{match}), {input.begin() + match.size(), input.end()} }};
-//         }
-
-//         return {};
-//     };
-// }
-
-constexpr Parser auto
-estr(std::string_view match)
-{
-    return [match](std::string_view input) -> Parsed
-    {
-        if(input.starts_with(match))
-        {
-            return {{ Expr{std::string{match}}, {input.begin() + match.size(), input.end()} }};
-        }
-
-        return {};
-    };
-}
+using Value_t = Expr;
+using Parsed = Parsed_t<Expr>;
 
 auto expression(std::string_view) -> Parsed;
 auto term(std::string_view) -> Parsed;

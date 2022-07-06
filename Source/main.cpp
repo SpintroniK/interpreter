@@ -1,5 +1,5 @@
 #include "Parser.hpp"
-
+#include "Ast.hpp"
 
 #include <iostream>
 #include <numeric>
@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-auto eval(const Value_t& ast) -> Data_t
+auto eval(const auto& ast) -> Data_t
 {
             // <Data_t, Add, Sub, Mul, Div, Neg>
     return std::visit(overloaded

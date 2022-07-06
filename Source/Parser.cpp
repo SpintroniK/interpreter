@@ -1,4 +1,5 @@
 #include "Parser.hpp"
+#include "Ast.hpp"
 
 #include <functional>
 #include <iostream>
@@ -24,7 +25,7 @@ auto term(std::string_view input) -> Parsed
         {
             return std::accumulate(vsf.begin(), vsf.end(), MakeExpr<Add>(f, Data_t{0}), [](const auto& acc, const auto& v)
             {
-                return std::get<std::string>(v.first) == "-" ? MakeExpr<Sub>(acc, v.second) : MakeExpr<Add>(acc, v.second);
+                return v.first == '-' ? MakeExpr<Sub>(acc, v.second) : MakeExpr<Add>(acc, v.second);
             });
         },
         factor,
@@ -35,8 +36,8 @@ auto term(std::string_view input) -> Parsed
                 [] (auto s, auto f) { return std::pair{s, f}; },
                 either
                 (
-                    estr("-"),
-                    estr("+")
+                    symbol('-'),
+                    symbol('+')
                 ),
                 factor
             )
@@ -54,7 +55,7 @@ auto factor(std::string_view input) -> Parsed
         {
             return std::accumulate(vsu.begin(), vsu.end(), MakeExpr<Mul>(u, Data_t{1}), [](const auto& acc, const auto& v)
             {
-                return std::get<std::string>(v.first) == "/" ? MakeExpr<Div>(acc, v.second) : MakeExpr<Mul>(acc, v.second);
+                return v.first == '/' ? MakeExpr<Div>(acc, v.second) : MakeExpr<Mul>(acc, v.second);
             });
         },
         unary,
@@ -65,8 +66,8 @@ auto factor(std::string_view input) -> Parsed
                 [] (auto s, auto u) { return std::pair{s, u}; },
                 either
                 (
-                    estr("/"),
-                    estr("*")
+                    symbol('/'),
+                    symbol('*')
                 ),
                 unary
             )
@@ -86,7 +87,7 @@ auto unary(std::string_view input) -> Parsed
             {
                     return MakeExpr<Neg>(u);
             },
-            estr("-"),
+            symbol('-'),
             unary
         ),
         primary
@@ -102,16 +103,13 @@ auto primary(std::string_view input) -> Parsed
         either
         (
             real,
-            einteger,
-            estr("true"),
-            estr("false"),
-            estr("nil"),
+            sequence([](auto i) { return Expr{i}; }, integer),
             sequence
             (
                 [] (auto, auto e, auto) { return e;},
-                estr("("),
+                symbol('('),
                 expression,
-                estr(")")
+                symbol(')')
             )
         )
     )(input);
@@ -124,7 +122,7 @@ auto real(std::string_view input) -> Parsed
     (
         [](auto v)
         {
-            return v;
+            return Expr{v};
         },
         either
         (
@@ -133,20 +131,20 @@ auto real(std::string_view input) -> Parsed
                 [](auto i, auto, auto f)
                 {
 
-                    const auto str = std::to_string(static_cast<int>(std::get<Data_t>(i))) 
+                    const auto str = std::to_string(static_cast<int>(i)) 
                                      + "." 
-                                     + (f? std::to_string(static_cast<int>(std::get<Data_t>(*f))) : "0");
+                                     + (f? std::to_string(static_cast<int>(*f)) : "0");
 
-                    return Expr{std::stod(str)}; 
+                    return std::stod(str); 
                 },
-                einteger,
+                integer,
                 symbol('.'),
-                maybe(einteger)
+                maybe(integer)
             ),
             sequence(
-                [](auto, const auto& x){ return Expr{std::stod("." + std::to_string(std::get<Data_t>(x)))}; },
+                [](auto, const auto& x){ return std::stod("." + std::to_string(x)); },
                 symbol('.'),
-                einteger
+                integer
             )
         )
     )(input);

@@ -13,7 +13,41 @@ public:
     using F::operator()...;
 };
 
-template <typename... T>
-struct Tree : std::pair<std::variant<T...>, std::vector<Tree<T...>>>
+
+struct Expr;
+
+struct Add
 {
+    std::shared_ptr<Expr> lhs, rhs;
 };
+
+struct Sub
+{
+    std::shared_ptr<Expr> lhs, rhs;
+};
+
+struct Mul
+{
+    std::shared_ptr<Expr> lhs, rhs;
+};
+
+struct Div
+{
+    std::shared_ptr<Expr> lhs, rhs;
+};
+
+struct Neg
+{
+    std::shared_ptr<Expr> expr;
+};
+
+template <typename E>
+auto MakeExpr(auto... e)
+{
+    return Expr{E{std::make_shared<Expr>(e)...}};
+}
+
+using Data_t = double;
+using Variant_t = std::variant<Data_t, std::string, Add, Sub, Mul, Div, Neg>;
+
+struct Expr : Variant_t {};
