@@ -41,13 +41,17 @@ struct Neg
     std::shared_ptr<Expr> expr;
 };
 
+
+using Data_t = double;
+using Variant_t = std::variant<Data_t, Add, Sub, Mul, Div, Neg>;
+
+struct Expr : Variant_t 
+{
+    using variant::variant;
+};
+
 template <typename E>
 auto MakeExpr(auto... e)
 {
     return Expr{E{std::make_shared<Expr>(e)...}};
 }
-
-using Data_t = double;
-using Variant_t = std::variant<Data_t, Add, Sub, Mul, Div, Neg>;
-
-struct Expr : Variant_t {};
