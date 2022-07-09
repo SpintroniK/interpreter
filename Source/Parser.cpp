@@ -23,11 +23,7 @@ auto term(std::string_view input) -> Parsed
     (
         [] (auto f, auto vsf) 
         {
-            if(vsf.empty())
-            {
-                return f;
-            }
-            return std::accumulate(vsf.begin(), vsf.end(), MakeExpr<Add>(f, Data_t{0}), [](const auto& acc, const auto& v)
+            return std::accumulate(vsf.begin(), vsf.end(), Expr{f}, [](const auto& acc, const auto& v)
             {
                 return v.first == '-' ? MakeExpr<Sub>(acc, v.second) : MakeExpr<Add>(acc, v.second);
             });
@@ -57,12 +53,7 @@ auto factor(std::string_view input) -> Parsed
     (
         [] (auto u, auto vsu) 
         {
-            if(vsu.empty())
-            {
-                return u;
-            }
-
-            return std::accumulate(vsu.begin(), vsu.end(), MakeExpr<Mul>(u, Data_t{1}), [](const auto& acc, const auto& v)
+            return std::accumulate(vsu.begin(), vsu.end(), Expr{u}, [](const auto& acc, const auto& v)
             {
                 return v.first == '/' ? MakeExpr<Div>(acc, v.second) : MakeExpr<Mul>(acc, v.second);
             });
@@ -103,7 +94,7 @@ auto unary(std::string_view input) -> Parsed
     )(input);
 }
 
-// primary        → real | integer | "true" | "false" | "nil" | "(" expression ")" ;
+// primary        → real | integer | "(" expression ")" ;
 
 auto primary(std::string_view input) -> Parsed
 {
