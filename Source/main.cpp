@@ -38,31 +38,27 @@ int main(int argc, char** argv)
 
         if(input == "q")
         {
+            std::cout << "💬 See you!" << std::endl;
             return EXIT_SUCCESS;
         }
 
-        const auto parsed = expression(input);
+        const auto parsed = expression(input);  // 🌳
 
         if(!parsed)
         {
-
             std::cout << "😟 Error: cannot parse input." << std::endl;
             continue;
         }
 
-        const auto bytecode = compile(parsed->first);
-        
-        std::cout << "🐞 Stack trace: " << std::endl;
-        for(const auto& b : bytecode)
-        {
-            std::cout << "🐞 " << +std::get<0>(b) << " | " << +std::get<1>(b) << std::endl;
-        }
+        const auto bytecode = compile(parsed->first);   // 💻
 
-        const auto result = execute(bytecode);
+        const auto astResult = eval(parsed->first);     // 🌳
+        std::cout << "🌳 " << astResult << std::endl;
+
+        const auto result = execute(bytecode);          // 💻
         std::cout << "💻 " << result << std::endl;
 
-        const auto astResult = eval(parsed->first);
-        std::cout << "✅ " << astResult << std::endl;
+        debug(bytecode);                                // 🐞
 
         if(!parsed->second.empty())
         {
