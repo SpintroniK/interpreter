@@ -23,7 +23,7 @@ auto term(std::string_view input) -> Parsed
     (
         [] (auto f, auto vsf) 
         {
-            return std::accumulate(vsf.begin(), vsf.end(), Expr{f}, [](const auto& acc, const auto& v)
+            return std::accumulate(vsf.begin(), vsf.end(), f, [](const auto& acc, const auto& v)
             {
                 return v.first == '-' ? MakeExpr<Sub>(acc, v.second) : MakeExpr<Add>(acc, v.second);
             });
@@ -53,7 +53,7 @@ auto factor(std::string_view input) -> Parsed
     (
         [] (auto u, auto vsu) 
         {
-            return std::accumulate(vsu.begin(), vsu.end(), Expr{u}, [](const auto& acc, const auto& v)
+            return std::accumulate(vsu.begin(), vsu.end(), u, [](const auto& acc, const auto& v)
             {
                 return v.first == '/' ? MakeExpr<Div>(acc, v.second) : MakeExpr<Mul>(acc, v.second);
             });

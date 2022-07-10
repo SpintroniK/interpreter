@@ -2,7 +2,9 @@
 #include "Vm.hpp"
 
 #include <iostream>
+#include <chrono>
 #include <numeric>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -21,12 +23,12 @@ auto eval(const auto& ast) -> Data_t
             }, ast);
 }
 
-
-
 int main(int argc, char** argv)
 {
 
-    const auto args = std::vector(argv, argv + argc);
+    const auto args = std::vector<std::string_view>(argv, argv + argc);
+
+    const auto isDebug = std::ranges::find(args, "-d") != args.end();
 
     for(;;)
     {
@@ -58,7 +60,10 @@ int main(int argc, char** argv)
         const auto result = execute(bytecode);          // 💻
         std::cout << "💻 " << result << std::endl;
 
-        debug(bytecode);                                // 🐞
+        if(isDebug)
+        {
+            debug(bytecode);                            // 🐞
+        }
 
         if(!parsed->second.empty())
         {
