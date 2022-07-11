@@ -84,7 +84,7 @@ auto debug(const Chunk_t& c)
             [&](OpCodes::Sub) { std::cout << "│➖ Subtract     │   " << std::endl; },
             [&](OpCodes::Mul) { std::cout << "│ ✖ Multiply     │   " << std::endl; },
             [&](OpCodes::Div) { std::cout << "│➗ Divide       │   " << std::endl; },
-            [&](const OpCodes::Push& v) { std::cout << "│📌 Push         │   " << v.value << std::endl; },
+            [&](const OpCodes::Push& v) { std::cout << "│📌 Push         │ 💾 " << v.value << std::endl; },
             [&](auto) {},
         }, op);
     }

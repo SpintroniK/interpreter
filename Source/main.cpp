@@ -1,6 +1,7 @@
 #include "Parser.hpp"
 #include "Vm.hpp"
 
+#include <iomanip>
 #include <iostream>
 #include <chrono>
 #include <numeric>
@@ -21,6 +22,87 @@ auto eval(const auto& ast) -> Data_t
                 [](const Add& m) { return eval(*m.lhs) + eval(*m.rhs); },
                 [](const Sub& m) { return eval(*m.lhs) - eval(*m.rhs); },
             }, ast);
+}
+
+auto getDepth(const auto& ast, std::size_t depth = 0) -> std::size_t
+{
+            // <Data_t, Add, Sub, Mul, Div, Neg>
+    return std::visit(overloaded
+            {
+                [&](Data_t) { return depth; },
+                [&](const Neg& n) { depth = getDepth(*n.expr, depth + 1); return depth; },
+                [&](const Mul& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+                [&](const Div& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+                [&](const Add& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+                [&](const Sub& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+            }, ast);
+}
+
+void print(const Expr& ast, std::string prefix = "", bool isLeft = false)
+{
+    struct ExprFmt
+    {
+        Expr e;
+        std::string prefix;
+        bool isNodeLeft;
+        bool isLeft;   
+    };
+    
+    const auto printNodes = [](const auto&... ef) 
+    {
+        (print(ef.e, ef.prefix + (ef.isNodeLeft ? "│   " : "    "), ef.isLeft), ...);
+    };
+
+    const auto printNode = [](const std::string& prefix, const std::string& symbol, bool isLeft)
+    {
+        std::cout << prefix;
+        std::cout << (isLeft ? "├──" : "└──" );
+        std::cout << symbol << std::endl;
+    };
+
+    const auto printLeaf = [](const std::string& prefix, bool isLeft, const auto& value)
+    {
+        std::cout << prefix << (isLeft ? "├──🍁 " : "└──🍁 " ) << value << std::endl;
+    };
+
+    // <Data_t, Add, Sub, Mul, Div, Neg>
+    std::visit(overloaded
+    {
+        [&](Data_t value) 
+        { 
+            printLeaf(prefix, isLeft, value);
+        },
+        [&](const Neg& n) 
+        {
+            printNode(prefix, "➖", isLeft);
+            printNodes(ExprFmt{*n.expr, prefix, isLeft, false});
+        },
+        [&](const Mul& m) 
+        {
+            printNode(prefix, "✖", isLeft);
+            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+                       ExprFmt{*m.rhs, prefix, isLeft, false});
+        },
+        [&](const Div& m) 
+        {
+            printNode(prefix, "➗", isLeft);
+            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+                       ExprFmt{*m.rhs, prefix, isLeft, false});
+        },
+        [&](const Add& m) 
+        {
+            printNode(prefix, "➕", isLeft);
+            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+                       ExprFmt{*m.rhs, prefix, isLeft, false});
+        },
+        [&](const Sub& m) 
+        {
+            printNode(prefix, "➖", isLeft);
+            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+                       ExprFmt{*m.rhs, prefix, isLeft, false});
+        },
+        [](auto ){}
+    }, ast);
 }
 
 int main(int argc, char** argv)
@@ -60,8 +142,12 @@ int main(int argc, char** argv)
         const auto result = execute(bytecode);          // 💻
         std::cout << "💻 " << result << std::endl;
 
+
         if(isDebug)
         {
+            // const auto d = getDepth(parsed->first);
+            // std::cout << "↧ " << d << std::endl;
+            print(parsed->first);                       // 🐞🌳
             debug(bytecode);                            // 🐞
         }
 
