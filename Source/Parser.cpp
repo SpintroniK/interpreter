@@ -8,7 +8,7 @@
 
 using namespace std::string_literals;
 
-// expression     → equality ;
+// expression     → term ;
 
 auto expression(std::string_view input) -> Parsed
 {

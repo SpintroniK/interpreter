@@ -1,8 +1,8 @@
 #pragma once
 
+#include <memory>
 #include <utility>
 #include <variant>
-#include <vector>
 
 
 template <typename ... F>
