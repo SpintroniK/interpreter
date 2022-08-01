@@ -16,7 +16,7 @@ template <typename P>
 concept Parser = std::regular_invocable<P, std::string_view> 
                  && requires(std::invoke_result_t<P, std::string_view> result) 
                  {
-                    std::same_as<decltype(result),
+                    requires std::same_as<decltype(result),
                                  Parsed_t<typename decltype(result)::value_type::first_type>>;
                  };
 
@@ -286,10 +286,13 @@ constexpr Parser auto letter = either(lower, upper);
 
 constexpr Parser auto alphanum = either(letter, digit);
 
+inline Parser auto word = many(alphanum);
+
 constexpr Parser auto symbol(char x)
 {
     return satisfy([x](char y){ return x == y; });
 }
+
 
 constexpr Parser auto str(std::string_view match)
 {
@@ -370,6 +373,7 @@ using Value_t = Expr;
 using Parsed = Parsed_t<Expr>;
 
 auto expression(std::string_view) -> Parsed;
+auto func(std::string_view) -> Parsed;
 auto term(std::string_view) -> Parsed;
 auto factor(std::string_view) -> Parsed;
 auto unary(std::string_view) -> Parsed;

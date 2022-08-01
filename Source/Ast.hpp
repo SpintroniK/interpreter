@@ -41,9 +41,19 @@ struct Neg
     std::shared_ptr<Expr> expr;
 };
 
+struct Func
+{
+    std::shared_ptr<Expr> expr;
+    std::string name;
+};
+
+struct Var
+{
+
+};
 
 using Data_t = double;
-using Variant_t = std::variant<Data_t, Add, Sub, Mul, Div, Neg>;
+using Variant_t = std::variant<Data_t, Var, Func, Add, Sub, Mul, Div, Neg>;
 
 struct Expr : Variant_t 
 {

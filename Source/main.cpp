@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <cmath>
 
 auto eval(const auto& ast) -> Data_t
 {
@@ -16,94 +17,99 @@ auto eval(const auto& ast) -> Data_t
     return std::visit(overloaded
             {
                 [](Data_t value) { return value; },
+                [](Var) { return 1.; },
                 [](const Neg& n) { return -eval(*n.expr); },
                 [](const Mul& m) { return eval(*m.lhs) * eval(*m.rhs); },
                 [](const Div& m) { return eval(*m.lhs) / eval(*m.rhs); },
                 [](const Add& m) { return eval(*m.lhs) + eval(*m.rhs); },
                 [](const Sub& m) { return eval(*m.lhs) - eval(*m.rhs); },
+                [](const Func& m) { return std::sqrt(eval(*m.expr)); },
             }, ast);
 }
 
-auto getDepth(const auto& ast, std::size_t depth = 0) -> std::size_t
-{
-            // <Data_t, Add, Sub, Mul, Div, Neg>
-    return std::visit(overloaded
-            {
-                [&](Data_t) { return depth; },
-                [&](const Neg& n) { depth = getDepth(*n.expr, depth + 1); return depth; },
-                [&](const Mul& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
-                [&](const Div& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
-                [&](const Add& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
-                [&](const Sub& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
-            }, ast);
-}
+// auto getDepth(const auto& ast, std::size_t depth = 0) -> std::size_t
+// {
+//             // <Data_t, Add, Sub, Mul, Div, Neg>
+//     return std::visit(overloaded
+//             {
+//                 [&](Data_t) { return depth; },
+//                 [&](const Neg& n) { depth = getDepth(*n.expr, depth + 1); return depth; },
+//                 [&](const Mul& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+//                 [&](const Div& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+//                 [&](const Add& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+//                 [&](const Sub& m) { depth = std::max(getDepth(*m.lhs, depth + 1), getDepth(*m.rhs, depth + 1)); return depth; },
+//             }, ast);
+// }
 
-void print(const Expr& ast, std::string prefix = "", bool isLeft = false)
-{
-    struct ExprFmt
-    {
-        Expr e;
-        std::string prefix;
-        bool isNodeLeft;
-        bool isLeft;   
-    };
+// void print(const Expr& ast, std::string prefix = "", bool isLeft = false)
+// {
+//     struct ExprFmt
+//     {
+//         Expr e;
+//         std::string prefix;
+//         bool isNodeLeft;
+//         bool isLeft;   
+//     };
     
-    const auto printNodes = [](const auto&... ef) 
-    {
-        (print(ef.e, ef.prefix + (ef.isNodeLeft ? "│   " : "    "), ef.isLeft), ...);
-    };
+//     const auto printNodes = [](const auto&... ef) 
+//     {
+//         (print(ef.e, ef.prefix + (ef.isNodeLeft ? "│   " : "    "), ef.isLeft), ...);
+//     };
 
-    const auto printNode = [](const std::string& prefix, const std::string& symbol, bool isLeft)
-    {
-        std::cout << prefix;
-        std::cout << (isLeft ? "├──" : "└──" );
-        std::cout << symbol << std::endl;
-    };
+//     const auto printNode = [](const std::string& prefix, const std::string& symbol, bool isLeft)
+//     {
+//         std::cout << prefix;
+//         std::cout << (isLeft ? "├──" : "└──" );
+//         std::cout << symbol << std::endl;
+//     };
 
-    const auto printLeaf = [](const std::string& prefix, bool isLeft, const auto& value)
-    {
-        std::cout << prefix << (isLeft ? "├──🍁 " : "└──🍁 " ) << value << std::endl;
-    };
+//     const auto printLeaf = [](const std::string& prefix, bool isLeft, const auto& value)
+//     {
+//         std::cout << prefix << (isLeft ? "├──🍁 " : "└──🍁 " ) << value << std::endl;
+//     };
 
-    // <Data_t, Add, Sub, Mul, Div, Neg>
-    std::visit(overloaded
-    {
-        [&](Data_t value) 
-        { 
-            printLeaf(prefix, isLeft, value);
-        },
-        [&](const Neg& n) 
-        {
-            printNode(prefix, "➖", isLeft);
-            printNodes(ExprFmt{*n.expr, prefix, isLeft, false});
-        },
-        [&](const Mul& m) 
-        {
-            printNode(prefix, "✖", isLeft);
-            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
-                       ExprFmt{*m.rhs, prefix, isLeft, false});
-        },
-        [&](const Div& m) 
-        {
-            printNode(prefix, "➗", isLeft);
-            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
-                       ExprFmt{*m.rhs, prefix, isLeft, false});
-        },
-        [&](const Add& m) 
-        {
-            printNode(prefix, "➕", isLeft);
-            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
-                       ExprFmt{*m.rhs, prefix, isLeft, false});
-        },
-        [&](const Sub& m) 
-        {
-            printNode(prefix, "➖", isLeft);
-            printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
-                       ExprFmt{*m.rhs, prefix, isLeft, false});
-        },
-        [](auto ){}
-    }, ast);
-}
+//     // <Data_t, Add, Sub, Mul, Div, Neg>
+//     std::visit(overloaded
+//     {
+//         [&](Data_t value) 
+//         { 
+//             printLeaf(prefix, isLeft, value);
+//         },
+//         [&](Var)
+//         {
+//             printLeaf(prefix, isLeft, "x");
+//         },
+//         [&](const Neg& n) 
+//         {
+//             printNode(prefix, "➖", isLeft);
+//             printNodes(ExprFmt{*n.expr, prefix, isLeft, false});
+//         },
+//         [&](const Mul& m) 
+//         {
+//             printNode(prefix, "✖", isLeft);
+//             printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+//                        ExprFmt{*m.rhs, prefix, isLeft, false});
+//         },
+//         [&](const Div& m) 
+//         {
+//             printNode(prefix, "➗", isLeft);
+//             printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+//                        ExprFmt{*m.rhs, prefix, isLeft, false});
+//         },
+//         [&](const Add& m) 
+//         {
+//             printNode(prefix, "➕", isLeft);
+//             printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+//                        ExprFmt{*m.rhs, prefix, isLeft, false});
+//         },
+//         [&](const Sub& m) 
+//         {
+//             printNode(prefix, "➖", isLeft);
+//             printNodes(ExprFmt{*m.lhs, prefix, isLeft, true}, 
+//                        ExprFmt{*m.rhs, prefix, isLeft, false});
+//         }
+//     }, ast);
+// }
 
 int main(int argc, char** argv)
 {
@@ -134,21 +140,21 @@ int main(int argc, char** argv)
             continue;
         }
 
-        const auto bytecode = compile(parsed->first);   // 💻
+        // const auto bytecode = compile(parsed->first);   // 💻
 
         const auto astResult = eval(parsed->first);     // 🌳
         std::cout << "🌳 " << astResult << std::endl;
 
-        const auto result = execute(bytecode);          // 💻
-        std::cout << "💻 " << result << std::endl;
+        // const auto result = execute(bytecode);          // 💻
+        // std::cout << "💻 " << result << std::endl;
 
 
         if(isDebug)
         {
             // const auto d = getDepth(parsed->first);
             // std::cout << "↧ " << d << std::endl;
-            print(parsed->first);                       // 🐞🌳
-            debug(bytecode);                            // 🐞
+            // print(parsed->first);                       // 🐞🌳
+            // debug(bytecode);                            // 🐞
         }
 
         if(!parsed->second.empty())

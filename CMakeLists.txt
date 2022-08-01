@@ -11,7 +11,7 @@ target_compile_options(
     interpreter
     PUBLIC
     -std=c++20
-    -O3
+    -O2
     -Wall
     -Werror
     -Wextra

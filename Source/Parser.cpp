@@ -94,7 +94,7 @@ auto unary(std::string_view input) -> Parsed
     )(input);
 }
 
-// primary        → real | integer | "(" expression ")" ;
+// primary        → real | integer | "x" | "(" expression ")" | word "(" expression ")" ;
 
 auto primary(std::string_view input) -> Parsed
 {
@@ -103,12 +103,21 @@ auto primary(std::string_view input) -> Parsed
         either
         (
             real,
+            chain(symbol('x'), [](auto) { return unit(MakeExpr<Var>()); }),
             chain(integer, [](auto i) { return unit(Expr{i}); }),
             sequence
             (
                 [] (auto, auto e, auto) { return e;},
                 symbol('('),
                 expression,
+                symbol(')')
+            ),
+            sequence
+            (
+                [](auto f, auto, auto e, auto){ return Expr{Func{std::make_shared<Expr>(e), f}}; },
+                word,
+                symbol('('),
+                term,
                 symbol(')')
             )
         )
@@ -142,7 +151,7 @@ auto real(std::string_view input) -> Parsed
                 maybe(integer)
             ),
             sequence(
-                [](auto, const auto& x){ return std::stod("." + std::to_string(x)); },
+                [](auto, const auto& x){ return std::stod("0." + std::to_string(x)); },
                 symbol('.'),
                 integer
             )
