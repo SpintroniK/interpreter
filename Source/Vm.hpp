@@ -3,7 +3,7 @@
 #include "Ast.hpp"
 #include "Compiler.hpp"
 
-#include <iostream>
+#include <span>
 #include <stack>
 #include <variant>
 
@@ -64,6 +64,83 @@ auto execute(const Chunk_t& c) -> Data_t
     return s.top();
 }
 
+
+auto exec(const Chunk_type& c) -> Data_t
+{
+    std::stack<Data_t> stack;
+
+    // std::cout << "size = " << sz << std::endl;
+    const auto pop2 = [&]
+    {
+        const auto rhs = stack.top();
+        stack.pop();
+        const auto lhs = stack.top();
+        stack.pop();
+        return std::pair{lhs, rhs};
+    };
+
+    for(std::size_t pos = 0; pos < c.size(); ++pos)
+    {
+        const auto code = static_cast<std::byte>(c[pos]);
+
+        switch(code)
+        {
+            case OpCode::Push:
+            {                
+                double value{};
+
+                const std::span view{c.data() + pos + 1, sizeof(Data_t)};
+                std::copy(view.begin(), view.end(), reinterpret_cast<std::uint8_t*>(&value)); 
+
+                pos += sizeof(Data_t);
+                stack.push(value);
+                break;
+            }
+
+            case OpCode::Neg:
+            {
+                const auto operand = stack.top();
+                stack.pop();
+                stack.push(-operand);
+                break;
+            }
+
+            case OpCode::Add:
+            {
+                const auto operands = pop2();
+                stack.push(operands.first + operands.second);
+                break;
+            }
+
+            case OpCode::Sub:
+            {
+                const auto operands = pop2();
+                stack.push(operands.first - operands.second);
+                break;
+            }
+
+            case OpCode::Div:
+            {
+                const auto operands = pop2();
+                stack.push(operands.first / operands.second);
+                break;
+            }
+
+            case OpCode::Mul:
+            {
+
+                const auto operands = pop2();
+                stack.push(operands.first * operands.second);
+                break;
+            }
+
+            case OpCode::Return: return stack.top();
+            default:break;
+        }
+    }
+
+    return {};
+}
 
 auto debug(const Chunk_t& c)
 {

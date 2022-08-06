@@ -16,7 +16,7 @@ template <typename P>
 concept Parser = std::regular_invocable<P, std::string_view> 
                  && requires(std::invoke_result_t<P, std::string_view> result) 
                  {
-                    std::same_as<decltype(result),
+                    requires std::same_as<decltype(result),
                                  Parsed_t<typename decltype(result)::value_type::first_type>>;
                  };
 

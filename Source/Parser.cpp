@@ -142,7 +142,7 @@ auto real(std::string_view input) -> Parsed
                 maybe(integer)
             ),
             sequence(
-                [](auto, const auto& x){ return std::stod("." + std::to_string(x)); },
+                [](auto, const auto& x){ return std::stod("0." + std::to_string(x)); },
                 symbol('.'),
                 integer
             )

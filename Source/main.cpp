@@ -1,6 +1,7 @@
 #include "Parser.hpp"
 #include "Vm.hpp"
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <chrono>
@@ -134,7 +135,21 @@ int main(int argc, char** argv)
             continue;
         }
 
-        const auto bytecode = compile(parsed->first);   // 💻
+        const auto bytecode = _compile(parsed->first);   // 💻
+
+        const auto bc = compile(parsed->first);
+        // std::cout << bc << std::endl;
+
+        std::ofstream out{"out.hex", std::ofstream::binary};
+        out << bc;
+
+        std::ifstream file{"in.hex", std::ifstream::binary};
+        std::string bytec;
+
+        file >> bytec;
+
+        std::cout << "result = " << exec(bc) << std::endl;
+        std::cout << "result [file] = " << exec(bytec) << std::endl;
 
         const auto astResult = eval(parsed->first);     // 🌳
         std::cout << "🌳 " << astResult << std::endl;
