@@ -16,34 +16,16 @@ public:
 
 struct Expr;
 
-struct Add
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Sub
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Mul
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Div
-{
-    std::shared_ptr<Expr> lhs, rhs;
-};
-
-struct Neg
-{
-    std::shared_ptr<Expr> expr;
-};
+// struct Add
+// {
+//     std::shared_ptr<Expr> lhs, rhs;
+// };
 
 
-using Data_t = double;
-using Variant_t = std::variant<Data_t, Add, Sub, Mul, Div, Neg>;
+
+
+using Data_t = int32_t;
+using Variant_t = std::variant<Data_t, std::string>;
 
 struct Expr : Variant_t 
 {

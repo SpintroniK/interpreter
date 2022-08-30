@@ -8,36 +8,170 @@
 
 using namespace std::string_literals;
 
-// expression     → term ;
-
-auto expression(std::string_view input) -> Parsed
+// line = number statement | statement .
+auto line(std::string_view input) -> Parsed
 {
-    return term(input);
+    return either
+    (
+        sequence
+        (
+            [](auto, auto) { return std::string{}; },
+            number,
+            statement
+        ),
+        statement
+    )(input);
 }
 
-// term           → factor { ( "-" | "+" ) factor } ;
+// statement = "PRINT" expr-list | "IF" expression relop expression "THEN" statement | "GOTO" expression | "INPUT" var-list |
+// "LET" var "=" expression | "GOSUB" expression | "RETURN" | "CLEAR" | "LIST" | "RUN" | "END" .
+auto statement(std::string_view input) -> Parsed
+{
+    return either
+    (
+        sequence
+        (
+            [](auto, auto){ return std::string{}; },
+            str("PRINT"),
+            expr_list
+        ),
+        sequence
+        (
+            [](auto, auto, auto, auto, auto, auto) { return std::string{}; },
+            str("IF"),
+            expression,
+            relop,
+            expression,
+            str("THEN"),
+            statement
+        ),
+        sequence
+        (
+            [](auto, auto) { return std::string{}; },
+            str("GOTO"),
+            expression
+        ),
+        sequence
+        (
+            [](auto, auto) { return std::string{}; },
+            str("INPUT"),
+            var_list
+        ),
+        sequence
+        (
+            [](auto, auto, auto, auto) { return std::string{}; },
+            str("LET"),
+            var,
+            str("="),
+            expression
+        ),
+        sequence
+        (
+            [](auto, auto) { return std::string{}; },
+            str("GOSUB"),
+            expression
+        ),
+        str("RETURN"),
+        str("CLEAR"),
+        str("LIST"),
+        str("RUN"),
+        str("END")
+    )(input);
+}
 
+// expr-list = (string | expression) {"," (string | expression) } .
+auto expr_list(std::string_view input) -> Parsed
+{
+    return sequence
+    (
+        [](auto, auto) { return std::string{}; },
+        either
+        (
+            str(" "),
+            expression
+        ),
+        repeat
+        (
+            sequence
+            (
+                [](auto, auto) { return std::string{}; },
+                str(","),
+                either
+                (
+                    str(" "),
+                    expression
+                )
+            )
+        )
+    )(input);
+}
+
+// var-list = var {"," var} .
+auto var_list(std::string_view input) -> Parsed
+{
+    return sequence
+    (
+        [](auto, auto) { return std::string{}; },
+        var,
+        repeat
+        (
+            sequence
+            (
+                [](auto, auto) { return std::string{}; },
+                symbol(','),
+                var
+            )
+        )
+    )(input);
+}
+
+// expression = ("+" | "-" | e) term {("+" | "-") term} .
+auto expression(std::string_view input) -> Parsed
+{
+    return sequence
+    (
+        [](auto, auto, auto) { return std::string{}; },
+        maybe
+        (
+            either
+            (
+                str("+"),
+                str("-")
+            )
+        ),
+        term,
+        repeat
+        (
+            sequence
+            (
+                [](auto, auto) { return std::string{}; },
+                either
+                (
+                    str("+"),
+                    str("-")
+                ),
+                term
+            )
+        )
+    )(input);
+}
+
+// term = factor {("*" | "/") factor} .
 auto term(std::string_view input) -> Parsed
 {
     return sequence
     (
-        [] (auto f, auto vsf) 
-        {
-            return std::accumulate(vsf.begin(), vsf.end(), f, [](const auto& acc, const auto& v)
-            {
-                return v.first == '-' ? MakeExpr<Sub>(acc, v.second) : MakeExpr<Add>(acc, v.second);
-            });
-        },
+        [](auto, auto) { return std::string{}; },
         factor,
         repeat
         (
             sequence
             (
-                [] (auto s, auto f) { return std::pair{s, f}; },
+                [](auto, auto)  { return std::string{}; },
                 either
                 (
-                    symbol('-'),
-                    symbol('+')
+                    symbol('*'),
+                    symbol('/')
                 ),
                 factor
             )
@@ -45,107 +179,49 @@ auto term(std::string_view input) -> Parsed
     )(input);
 }
 
-// factor         → unary { ( "/" | "*" ) unary } ;
-
+// factor = var | number | (expression) .
 auto factor(std::string_view input) -> Parsed
 {
-    return sequence
+    return 
+    either
     (
-        [] (auto u, auto vsu) 
-        {
-            return std::accumulate(vsu.begin(), vsu.end(), u, [](const auto& acc, const auto& v)
-            {
-                return v.first == '/' ? MakeExpr<Div>(acc, v.second) : MakeExpr<Mul>(acc, v.second);
-            });
-        },
-        unary,
-        repeat
+        var,
+        number,
+        sequence
         (
-            sequence
-            (
-                [] (auto s, auto u) { return std::pair{s, u}; },
-                either
-                (
-                    symbol('/'),
-                    symbol('*')
-                ),
-                unary
-            )
+            [](auto, auto, auto) { return Expr{std::string{}}; },
+            symbol('('),
+            expression,
+            symbol(')')
         )
     )(input);
 }
 
-// unary          → ( "!" | "-" ) unary | primary ;
-
-auto unary(std::string_view input) -> Parsed
+// var = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" . 
+auto var(std::string_view input) -> Parsed
 {
-    return either
-    (
-        sequence
-        (
-            [] (auto, auto u)
-            {
-                    return MakeExpr<Neg>(u);
-            },
-            symbol('-'),
-            unary
-        ),
-        primary
-    )(input);
+    return chain(upper, [](auto ){ return unit(Expr{std::string{}}); })(input);
 }
 
-// primary        → real | integer | "(" expression ")" ;
+// number = digit { digit } .
+auto number(std::string_view input) -> Parsed
+{
+    return chain(integer, [](auto ){ return unit(Expr{std::string{}}); })(input);
+}
 
-auto primary(std::string_view input) -> Parsed
+auto relop(std::string_view input) -> Parsed
 {
     return token
     (
         either
         (
-            real,
-            chain(integer, [](auto i) { return unit(Expr{i}); }),
-            sequence
-            (
-                [] (auto, auto e, auto) { return e;},
-                symbol('('),
-                expression,
-                symbol(')')
-            )
-        )
-    )(input);
-}
-
-// real = integer "." [integer] | "." integer.
-auto real(std::string_view input) -> Parsed
-{
-    return sequence
-    (
-        [](auto v)
-        {
-            return Expr{v};
-        },
-        either
-        (
-            sequence
-            (
-                [](auto i, auto, auto f)
-                {
-
-                    const auto str = std::to_string(static_cast<int>(i)) 
-                                     + "." 
-                                     + (f? std::to_string(static_cast<int>(*f)) : "0");
-
-                    return std::stod(str); 
-                },
-                integer,
-                symbol('.'),
-                maybe(integer)
-            ),
-            sequence(
-                [](auto, const auto& x){ return std::stod("0." + std::to_string(x)); },
-                symbol('.'),
-                integer
-            )
+            str("<"),
+            str("<="),
+            str("<>"),
+            str("><"),
+            str(">="),
+            str(">"),
+            str("=")
         )
     )(input);
 }

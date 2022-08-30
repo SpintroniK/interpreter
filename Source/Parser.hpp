@@ -369,9 +369,14 @@ struct Expr;
 using Value_t = Expr;
 using Parsed = Parsed_t<Expr>;
 
+
+auto line(std::string_view) -> Parsed;
+auto statement(std::string_view) -> Parsed;
+auto expr_list(std::string_view) -> Parsed;
+auto var_list(std::string_view) -> Parsed;
 auto expression(std::string_view) -> Parsed;
 auto term(std::string_view) -> Parsed;
 auto factor(std::string_view) -> Parsed;
-auto unary(std::string_view) -> Parsed;
-auto primary(std::string_view) -> Parsed;
-auto real(std::string_view) -> Parsed;
+auto var(std::string_view) -> Parsed;
+auto number(std::string_view) -> Parsed;
+auto relop(std::string_view) -> Parsed;
