@@ -140,6 +140,11 @@ int main(int argc, char** argv)
         const auto bc = compile(parsed->first);
         // std::cout << bc << std::endl;
 
+        Vm vm{bc};
+
+        const auto res = vm.Execute();
+        std::cout << "res = " << res << std::endl;
+
         std::ofstream out{"out.hex", std::ofstream::binary};
         out << bc;
 
