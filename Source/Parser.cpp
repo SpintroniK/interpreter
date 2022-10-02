@@ -31,7 +31,7 @@ auto statement(std::string_view input) -> Parsed
     (
         sequence
         (
-            [](auto, auto){ return std::string{}; },
+            [](auto, auto){ std::cout << "print" << std::endl; return std::string{}; },
             str("PRINT"),
             expr_list
         ),
@@ -59,10 +59,10 @@ auto statement(std::string_view input) -> Parsed
         ),
         sequence
         (
-            [](auto, auto, auto, auto) { return std::string{}; },
-            str("LET"),
+            [](auto, auto v, auto, auto) { std::cout << "let " << std::get<Var>(v) << "..." << std::endl; return std::string{}; },
+            token(str("LET")),
             var,
-            str("="),
+            token(str("=")),
             expression
         ),
         sequence
@@ -179,7 +179,7 @@ auto term(std::string_view input) -> Parsed
     )(input);
 }
 
-// factor = var | number | (expression) .
+// factor = var | number | "(" expression ")" .
 auto factor(std::string_view input) -> Parsed
 {
     return 
@@ -189,7 +189,7 @@ auto factor(std::string_view input) -> Parsed
         number,
         sequence
         (
-            [](auto, auto, auto) { return Expr{std::string{}}; },
+            [](auto, auto, auto) { return Stmt{std::string{}}; },
             symbol('('),
             expression,
             symbol(')')
@@ -200,13 +200,13 @@ auto factor(std::string_view input) -> Parsed
 // var = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" . 
 auto var(std::string_view input) -> Parsed
 {
-    return chain(upper, [](auto ){ return unit(Expr{std::string{}}); })(input);
+    return chain(upper, [](auto v){ return unit(Stmt{Var{v}}); })(input);
 }
 
 // number = digit { digit } .
 auto number(std::string_view input) -> Parsed
 {
-    return chain(integer, [](auto ){ return unit(Expr{std::string{}}); })(input);
+    return chain(integer, [](auto i){ return unit(Stmt{Number{i}}); })(input);
 }
 
 auto relop(std::string_view input) -> Parsed

@@ -348,7 +348,7 @@ Parser auto repeat(P parser)
 Parser auto natural = chain
 (
     some(digit),
-    [](const std::string& digits) { return unit(std::stod(digits)); }
+    [](const std::string& digits) { return unit(std::stoi(digits)); }
 );
 
 
@@ -364,10 +364,10 @@ Parser auto integer = either
 );
 
 
-struct Expr;
+struct Stmt;
 
-using Value_t = Expr;
-using Parsed = Parsed_t<Expr>;
+using Value_t = Stmt;
+using Parsed = Parsed_t<Stmt>;
 
 
 auto line(std::string_view) -> Parsed;

@@ -14,26 +14,43 @@ public:
 };
 
 
-struct Expr;
+struct Stmt;
+using Data_t = int32_t;
 
 // struct Add
 // {
 //     std::shared_ptr<Expr> lhs, rhs;
 // };
 
+enum class Relop
+{
+    lower,
+    leq,
+    neq,
+    geq,
+    greater,
+    equal
+};
 
+enum class Op
+{
+    plus,
+    minus,
+    mul,
+    div
+};
 
+using Number = Data_t;
+using Var = std::string;
 
-using Data_t = int32_t;
-using Variant_t = std::variant<Data_t, std::string>;
-
-struct Expr : Variant_t 
+struct Stmt
+: std::variant<Number, Var, Relop, Op> 
 {
     using variant::variant;
 };
 
 template <typename E>
-auto MakeExpr(auto... e)
+auto MakeStmt(auto... e)
 {
-    return Expr{E{std::make_shared<Expr>(e)...}};
+    return Stmt{E{std::make_shared<Stmt>(e)...}};
 }
